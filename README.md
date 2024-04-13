@@ -9,8 +9,6 @@ process ran successfully. Any other exit status code means that the process fail
 
 ### Example using a shell
 
-example: test exit status 1 
-
 1. Start a bash shell
 2. Run a program that terminates with exit status `1`
    ```
@@ -72,7 +70,7 @@ $ podman run --rm --detach alpine sh -c "exit 1"
 a42fec56914f777c7c79f5baad9ba169c3686177e92436181959e2fc1946eddd
 $ echo $?
 0
-$ 
+$
 ```
 
 ## Internal Podman error
@@ -138,7 +136,7 @@ $ echo $?
 ## Podman exit status in systemd service logs
 
 When __podman run__ is executed in a systemd service and terminates with a non-zero exit status code, __systemd__ will
-write the exit status code  the systemd journal log. 
+write the exit status code to the systemd journal log.
 In addition to that __systemd__ appends a text annotation describing the specific exit status code.
 
 | podman exit status | systemd log annotation |
@@ -194,7 +192,7 @@ The container command is configured to terminate with the exit status code `4`.
    ```
 1. Check the journal log
    ```
-   journalctl -q --user --no-pager -xeu test@service | grep 
+   journalctl -q --user --no-pager -xeu test@service | grep status=
    ```
    The command prints the output
    ```
@@ -208,7 +206,7 @@ really caused by a permission issue.
 
 ### Complete list of systemd exit status annotations
 
-For completeness, here is a table showing all error codes and the text systemd writes to the log. 
+For completeness, here is a table showing all exit status codes and the text systemd writes to the systemd journal log.
 
 | podman exit status | systemd service log output |
 |  --                |  --                        |
