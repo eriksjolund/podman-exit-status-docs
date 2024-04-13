@@ -176,7 +176,7 @@ The container command is configured to terminate with the exit status code `4`.
 1. `sudo useradd test`
 1. `sudo machinectl shell --uid test`
 1. `mkdir -p ~/.config/containers/systemd`
-1. Create the file _~/.config/containers/systemd/test@container_ with the contents
+1. Create the file _~/.config/containers/systemd/test.container_ with the contents
    ```
    [Container]
    Image=localhost/exit
