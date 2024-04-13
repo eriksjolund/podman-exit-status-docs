@@ -192,7 +192,7 @@ The container command is configured to terminate with the exit status code `4`.
    ```
 1. Check the journal log
    ```
-   journalctl -q --user --no-pager -xeu test@service | grep status=
+   journalctl -q --user --no-pager -xeu test.service | grep status=
    ```
    The command prints the output
    ```
