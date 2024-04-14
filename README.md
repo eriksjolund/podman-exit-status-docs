@@ -28,7 +28,7 @@ process ran successfully. Any other exit status code means that the process fail
 Podman terminates with the same exit status as the command that was started in the container.
 
 | command | podman exit status |
-| --                            |                --  |
+| --      |                --  |
 |   podman run alpine sh -c "exit 0" | 0 |
 |   podman run alpine sh -c "exit 1" | 1 |
 |   podman run alpine sh -c "exit 2" | 2 |
@@ -45,10 +45,6 @@ Podman terminates with the same exit status as the command that was started in t
 
 Podman always terminates with exit status code `0` when the option
 __--detach__ is given to the  __podman run__ command.
-Podman will in detached mode terminate right
-away after starting the container.
-Podman does not wait for the termination of the container process
-so Podman does not know of any container command _exit status code_.
 
 | command | podman exit status |
 | --                            |                --  |
@@ -63,14 +59,45 @@ so Podman does not know of any container command _exit status code_.
 
 (The lines for 5-253 were left out of the table for brevity)
 
-__Example:__
+
+Podman will in detached mode terminate right
+away after starting the container.
+Podman does not wait for the termination of the container process,
+so when Podman terminates it does not know of any container command _exit status code_.
+If `podman run` has not been given the option `--rm`, then the helper program `conmon`
+will save the information about the container exit status.
+The container exit status can later be shown with
 
 ```
-$ podman run --rm --detach alpine sh -c "exit 1"
+podman container inspect CTR -f "{{.State.ExitCode}}"
+```
+
+__Example:__
+
+The container command terminates with exit status code `8`.
+__podman__ terminates with exit status code `0`.
+The exit status code `8` can later be shown with __podman container inspect__
+
+```
+$ podman run --detach --name mytest1 alpine sh -c "exit 8"
 a42fec56914f777c7c79f5baad9ba169c3686177e92436181959e2fc1946eddd
 $ echo $?
 0
-$
+$ podman container inspect mytest1 -f "{{.State.ExitCode}}"
+8
+```
+
+If we run the same example but add `--rm`, then the container
+is removed when it is stopped. The `podman container inspect`
+will thus fail because the container does not exist:
+
+```
+$ podman run --detach --rm --name mytest2 alpine sh -c "exit 8"
+a42fec56914f777c7c79f5baad9ba169c3686177e92436181959e2fc1946eddd
+$ echo $?
+0
+$ podman container inspect mytest2 -f "{{.State.ExitCode}}"
+Error: no such container mytest2
 ```
 
 ## Internal Podman error
@@ -98,7 +125,7 @@ $ echo $?
 
 __Example:__
 
-Specify a container command that cannot be invoked. (_/etc_ is a directory and not an executable).
+Specify a container command that cannot be invoked. The argument `/etc` is a directory and not an executable.
 ```
 $ podman run alpine /etc
 Error: crun: open executable: Operation not permitted: OCI permission denied
@@ -116,7 +143,7 @@ $ echo $?
 127
 ```
 
-Note that the podman exit status codes 125, 126, 127 can originate either from an internal Podman error or from the container command
+Note that the podman exit status codes `125`, `126`, `127` can originate either from an internal Podman error or from the container command
 having this exit status.
 
 __Example:__
@@ -133,13 +160,73 @@ $ echo $?
 127
 ```
 
-## Podman exit status in systemd service logs
+## Main process exit status in systemd service
 
-When __podman run__ is executed in a systemd service and terminates with a non-zero exit status code, __systemd__ will
-write the exit status code to the systemd journal log.
-In addition to that __systemd__ appends a text annotation describing the specific exit status code.
+When __podman run__ is executed in a systemd service that was generated from a quadlet file, the systemd service is configured with
 
-| podman exit status | systemd log annotation |
+```
+Type=notify
+```
+
+For more information, see [podman-systemd.unit(5)](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html) and [systemd.service(5)](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html).
+
+When systemd starts such a service by executing the __podman run__ command that is set in `ExecStart=`, systemd sees the `podman` process as the main process of the service.
+The `podman` process later notifies systemd that instead a `conmon` process should become the main process.
+
+__Example:__ Show the `ExecStart=` configuration of a systemd service generated from a quadlet
+
+<details>
+  <summary>Click me to show the example</summary>
+
+1. `sudo useradd test`
+1. `sudo machinectl shell --uid test`
+1. `mkdir -p ~/.config/containers/systemd`
+1. Create the file _~/.config/containers/systemd/test.container_ with the contents
+   ```
+   [Container]
+   Image=docker.io/library/alpine
+   Exec=sleep inf
+   ```
+1. Reload the systemd configuration
+   ```
+   systemctl --user daemon-reload
+   ```
+1. Show the generated `ExecStart=` configuration
+   ```
+   systemctl --user cat test.service | grep ExecStart=
+   ```
+   The command prints the output
+   ```
+   ExecStart=/usr/bin/podman run --name=systemd-%N --cidfile=%t/%N.cid --replace --rm --cgroups=split --sdnotify=conmon -d localhost/exit sleep inf
+   ```
+
+</details>
+
+The container process is started like this.
+
+``` mermaid
+stateDiagram-v2
+    systemd --> podman: fork/exec
+    state "OCI runtime" as s2
+    podman --> conmon: double fork/exec
+    conmon --> s2: fork/exec
+    s2 --> container: exec
+```
+
+1. __systemd__ starts the __podman__ process with fork/exec.
+2. __podman__ process starts the __conmon__ process with fork/exec.
+3.  The __podman__ process will terminate when it has started the __conmon__ process.
+     Before doing so the podman process notifies __systemd__ that the conmon process should now be the main process.
+     The __podman__ process notifies __systemd__ the PID of conmon by calling `sd_notify()` with the message `MAINPID=`.
+4. __conmon__ process starts __OCI runtime__ with fork/exec.
+5. __OCI runtime__ starts the container process with exec.
+
+The `conmon` process stays around waiting for the container process to terminate.
+Conmon will check the exit status code of the container process and then conmon exits with the same exit status code.
+If it is a non-zero exit status code, __systemd__ will write the exit status code to the systemd journal log.
+In addition to that __systemd__ appends a text annotation describing the exit status code.
+
+| main process exit status | systemd log annotation |
 |  --                |  --          |
 | 1 | /FAILURE |
 | 2 | /INVALIDARGUMENT |
@@ -163,11 +250,8 @@ In addition to that __systemd__ appends a text annotation describing the specifi
 | 77 | /NOPERM |
 | 78 | /CONFIG |
 
-For all other non-zero error code numbers (8-64, 79-255) systemd appends the text string `/n/a` meaning no
+For all other non-zero error status codes (8-64, 79-255) systemd appends the text string `/n/a` meaning no
 annotation is available for the error status code.
-
-Systemd services running Podman can be created by writing Quadlet files.
-An alternative method (now deprecated) is the command [`podman generate systemd`](https://docs.podman.io/en/latest/markdown/podman-generate-systemd.1.html).
 
 #### Example systemd service generated from a quadlet
 
@@ -200,7 +284,7 @@ The container command is configured to terminate with the exit status code `4`.
    ```
    The log message from systemd contains the annotation `/NOPERMISSION`
 
-:note: The systemd annotation text can be misleading. For example `status=4/NOPERMISSION` seen in a journal log
+Note that the systemd annotation text can be misleading. For example `status=4/NOPERMISSION` seen in a journal log
 merely indicates that the container command terminated with error status code 4. It is unclear whether the error was
 really caused by a permission issue.
 
@@ -208,7 +292,7 @@ really caused by a permission issue.
 
 For completeness, here is a table showing all exit status codes and the text systemd writes to the systemd journal log.
 
-| podman exit status | systemd service log output |
+| main process exit status | systemd service log output |
 |  --                |  --                        |
 | 0   | |
 | 1   | Main process exited, code=exited, status=1/FAILURE |
