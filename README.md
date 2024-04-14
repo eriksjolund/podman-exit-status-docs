@@ -125,7 +125,7 @@ $ echo $?
 
 __Example:__
 
-Specify a container command that cannot be invoked. (_/etc_ is a directory and not an executable).
+Specify a container command that cannot be invoked. The argument `/etc` is a directory and not an executable.
 ```
 $ podman run alpine /etc
 Error: crun: open executable: Operation not permitted: OCI permission denied
@@ -143,7 +143,7 @@ $ echo $?
 127
 ```
 
-Note that the podman exit status codes 125, 126, 127 can originate either from an internal Podman error or from the container command
+Note that the podman exit status codes `125`, `126`, `127` can originate either from an internal Podman error or from the container command
 having this exit status.
 
 __Example:__
