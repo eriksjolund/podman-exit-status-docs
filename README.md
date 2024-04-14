@@ -45,10 +45,6 @@ Podman terminates with the same exit status as the command that was started in t
 
 Podman always terminates with exit status code `0` when the option
 __--detach__ is given to the  __podman run__ command.
-Podman will in detached mode terminate right
-away after starting the container.
-Podman does not wait for the termination of the container process
-so Podman does not know of any container command _exit status code_.
 
 | command | podman exit status |
 | --                            |                --  |
@@ -63,14 +59,45 @@ so Podman does not know of any container command _exit status code_.
 
 (The lines for 5-253 were left out of the table for brevity)
 
-__Example:__
+
+Podman will in detached mode terminate right
+away after starting the container.
+Podman does not wait for the termination of the container process,
+so when Podman terminates it does not know of any container command _exit status code_.
+If `podman run` has not been given the option `--rm`, then the helper program `conmon`
+will save the information about the container exit status.
+The container exit status can later be shown with
 
 ```
-$ podman run --rm --detach alpine sh -c "exit 1"
+podman container inspect CTR -f "{{.State.ExitCode}}"
+```
+
+__Example:__
+
+The container command terminates with exit status code `8`.
+__podman__ terminates with exit status code `0`.
+The exit status code `8` can later be shown with __podman container inspect__
+
+```
+$ podman run --detach --name mytest1 alpine sh -c "exit 8"
 a42fec56914f777c7c79f5baad9ba169c3686177e92436181959e2fc1946eddd
 $ echo $?
 0
-$
+$ podman container inspect mytest1 -f "{{.State.ExitCode}}"
+8
+```
+
+If we run the same example but add `--rm`, then the container
+is removed when it is stopped. The `podman container inspect`
+will thus fail because the container does not exist:
+
+```
+$ podman run --detach --rm --name mytest2 alpine sh -c "exit 8"
+a42fec56914f777c7c79f5baad9ba169c3686177e92436181959e2fc1946eddd
+$ echo $?
+0
+$ podman container inspect mytest2 -f "{{.State.ExitCode}}"
+Error: no such container mytest2
 ```
 
 ## Internal Podman error
