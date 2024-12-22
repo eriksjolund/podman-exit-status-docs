@@ -550,3 +550,85 @@ For completeness, here is a table showing all exit status codes and the text sys
 | 253 | Main process exited, code=exited, status=253/n/a |
 | 254 | Main process exited, code=exited, status=254/n/a |
 | 255 | Main process exited, code=exited, status=255/n/a |
+
+
+
+
+TODO: Describe the meaning of the following list:
+
+Run command
+```
+systemd-analyze --no-pager exit-status
+```
+The following output is printed
+```
+NAME                    STATUS CLASS
+SUCCESS                      0 libc
+FAILURE                      1 libc
+INVALIDARGUMENT              2 LSB
+NOTIMPLEMENTED               3 LSB
+NOPERMISSION                 4 LSB
+NOTINSTALLED                 5 LSB
+NOTCONFIGURED                6 LSB
+NOTRUNNING                   7 LSB
+USAGE                       64 BSD
+DATAERR                     65 BSD
+NOINPUT                     66 BSD
+NOUSER                      67 BSD
+NOHOST                      68 BSD
+UNAVAILABLE                 69 BSD
+SOFTWARE                    70 BSD
+OSERR                       71 BSD
+OSFILE                      72 BSD
+CANTCREAT                   73 BSD
+IOERR                       74 BSD
+TEMPFAIL                    75 BSD
+PROTOCOL                    76 BSD
+NOPERM                      77 BSD
+CONFIG                      78 BSD
+CHDIR                      200 systemd
+NICE                       201 systemd
+FDS                        202 systemd
+EXEC                       203 systemd
+MEMORY                     204 systemd
+LIMITS                     205 systemd
+OOM_ADJUST                 206 systemd
+SIGNAL_MASK                207 systemd
+STDIN                      208 systemd
+STDOUT                     209 systemd
+CHROOT                     210 systemd
+IOPRIO                     211 systemd
+TIMERSLACK                 212 systemd
+SECUREBITS                 213 systemd
+SETSCHEDULER               214 systemd
+CPUAFFINITY                215 systemd
+GROUP                      216 systemd
+USER                       217 systemd
+CAPABILITIES               218 systemd
+CGROUP                     219 systemd
+SETSID                     220 systemd
+CONFIRM                    221 systemd
+STDERR                     222 systemd
+PAM                        224 systemd
+NETWORK                    225 systemd
+NAMESPACE                  226 systemd
+NO_NEW_PRIVILEGES          227 systemd
+SECCOMP                    228 systemd
+SELINUX_CONTEXT            229 systemd
+PERSONALITY                230 systemd
+APPARMOR                   231 systemd
+ADDRESS_FAMILIES           232 systemd
+RUNTIME_DIRECTORY          233 systemd
+CHOWN                      235 systemd
+SMACK_PROCESS_LABEL        236 systemd
+KEYRING                    237 systemd
+STATE_DIRECTORY            238 systemd
+CACHE_DIRECTORY            239 systemd
+LOGS_DIRECTORY             240 systemd
+CONFIGURATION_DIRECTORY    241 systemd
+NUMA_POLICY                242 systemd
+CREDENTIALS                243 systemd
+BPF                        244 systemd
+KSM                        245 systemd
+EXCEPTION                  255 systemd
+```
